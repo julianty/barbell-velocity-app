@@ -23,7 +23,8 @@ Reference repo: `C:\Users\alexa\repos\barbell-speed-estimator` (Python env: `bb-
       Also confirmed: port both concentric methods (ruptures default); rep schema
       {repIndex,startFrame,endFrame,avgVelPxS,maxVelPxS,durationS,displacementPx};
       pen=20 default; missing frames = null (no confidence gating in analysis).
-- [x] git init done; **no commit yet** (user hasn't asked; offer periodic commits)
+- [x] git init done; user authorized commits ("go ahead and commit and continue") —
+      commit at every milestone
 - [x] Golden fixtures: `tools/dump_golden.py` added to reference repo; 5 fixtures
       in test/fixtures/ (2 bench, 1 deadlift, 2 squat; numpy 2.4.4/scipy 1.17.1/
       ruptures 1.1.10, PELT min_size=2 jump=5 verified)
@@ -54,18 +55,36 @@ Reference repo: `C:\Users\alexa\repos\barbell-speed-estimator` (Python env: `bb-
       wrist constants, ONNX output schema documented in its doc comment).
       ultralytics_yolo + ONNX runtime pkg deliberately NOT added yet (keeps web
       build green); add during Task #6.
-- [ ] Input layer (Task #5) ← **NEXT**: web FrameSource via package:web
-      (video element -> canvas, seek per frame, fps from duration/frameCount or
-      requestVideoFrameCallback); iOS via AVFoundation or plugin.
-- [ ] Inference layer (Task #6): READ yolo_pose/build_barbell_track.py FIRST
-      (not yet read — person lock: largest box frame 0, then wrist proximity;
-      port into lib/inference/track_builder.dart). Web: decode (1,56,8400)
-      output + NMS in Dart. iOS: ultralytics_yolo pose task.
+- [x] Input layer COMPLETE (Task #5): analyze clean, web build clean, 92/92
+      tests pass.
+      - lib/input/video_picker.dart — file_picker 11 (static `FilePicker.pickFiles`;
+        `FilePicker.platform` is gone in v11); bytes on web, path on iOS.
+      - lib/input/frame_source_factory.dart — conditional import
+        (dart.library.js_interop → web, dart.library.io → iOS).
+      - lib/input/web_frame_source.dart — hidden `<video>` + canvas
+        (`willReadFrequently`), frames pumped via `requestVideoFrameCallback`
+        (typed natively by package:web 1.1.1); browser fps unknown → open()
+        reports NaN, compute afterwards with `estimateFps` (1/median dt over
+        frame `mediaTime` timestamps; tested). Extraction is realtime-speed;
+        WebCodecs noted as future optimization.
+      - lib/input/ios_frame_source.dart + ios/Runner/FrameExtractor.swift —
+        MethodChannel `barbell_velocity/frame_extractor` (open/close) +
+        EventChannel `barbell_velocity/frame_stream`; AVAssetReader BGRA →
+        RGBA via vImagePermuteChannels (stride-aware), events on main thread.
+        Registered in AppDelegate via `didInitializeImplicitFlutterEngine`.
+        **Swift written on Windows — UNVERIFIED; build on Mac.**
+      - lib/inference/track_builder.dart — build_barbell_track.py port done
+        early (selection: single → wrist-proximity to lastCenter → largest
+        bbox; confidence deliberately ignored) with unit tests
+        (test/inference/track_builder_test.dart).
+- [ ] Inference layer (Task #6) ← **NEXT**: Web: pick ONNX runtime approach
+      (likely onnxruntime-web via JS interop; add dep now), decode (1,56,8400)
+      output + letterbox preprocess + NMS in Dart, unit-test decode/NMS with a
+      small fixture. iOS: ultralytics_yolo pose backend (code-only, verify on
+      Mac). Wire InferenceBackend → TrackBuilder.
 - [ ] Pipeline + UI (Task #7): isolate for analysis (web: compute() works),
       rep table + fl_chart velocity plot with shaded phases, error states
       (no barbell / zero reps / unreadable video), widget + integration tests.
-- NOTE: repo still has NO commits (user hasn't asked; files staged). Offer again
-      at next milestone.
 
 ## Proposed module layout (pending user confirmation)
 
