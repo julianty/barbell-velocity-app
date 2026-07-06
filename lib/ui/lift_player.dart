@@ -91,7 +91,6 @@ class _LiftPlayerState extends State<LiftPlayer> {
     final viz = VizPalette.of(context);
     if (widget.frames.isEmpty) return const SizedBox.shrink();
 
-    final first = widget.frames.first;
     final t = widget.cursorTime.value.clamp(0.0, _endS);
     final index = _frameIndexAt(t);
     _ensureDecoded(index);
@@ -102,22 +101,22 @@ class _LiftPlayerState extends State<LiftPlayer> {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        // Fixed-height letterbox: the frame is contained within whatever
+        // width the parent gives the player, so portrait videos don't shrink
+        // the controls row below it.
         ClipRRect(
           borderRadius: BorderRadius.circular(8),
           child: SizedBox(
-            height: 240,
-            child: AspectRatio(
-              aspectRatio: first.width / first.height,
-              child: ColoredBox(
-                color: viz.surface,
-                child: image == null
-                    ? const Center(
-                        child: SizedBox(
-                            width: 24,
-                            height: 24,
-                            child: CircularProgressIndicator(strokeWidth: 2)))
-                    : RawImage(image: image, fit: BoxFit.contain),
-              ),
+            height: 280,
+            child: ColoredBox(
+              color: viz.surface,
+              child: image == null
+                  ? const Center(
+                      child: SizedBox(
+                          width: 24,
+                          height: 24,
+                          child: CircularProgressIndicator(strokeWidth: 2)))
+                  : RawImage(image: image, fit: BoxFit.contain),
             ),
           ),
         ),

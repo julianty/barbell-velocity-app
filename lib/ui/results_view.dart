@@ -115,10 +115,11 @@ class _ResultsViewState extends State<ResultsView> {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Fixed width regardless of video aspect: portrait
+                      // videos previously collapsed this column (and its
+                      // scrubber) to the video's narrow width.
                       SizedBox(
-                        width: (240 * preview.first.width /
-                                preview.first.height)
-                            .clamp(160.0, 480.0),
+                        width: 360,
                         child: LiftPlayer(
                             frames: preview, cursorTime: _cursorTime),
                       ),
