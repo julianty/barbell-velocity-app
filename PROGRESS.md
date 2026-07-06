@@ -77,14 +77,35 @@ Reference repo: `C:\Users\alexa\repos\barbell-speed-estimator` (Python env: `bb-
         early (selection: single → wrist-proximity to lastCenter → largest
         bbox; confidence deliberately ignored) with unit tests
         (test/inference/track_builder_test.dart).
-- [ ] Inference layer (Task #6) ← **NEXT**: Web: pick ONNX runtime approach
-      (likely onnxruntime-web via JS interop; add dep now), decode (1,56,8400)
-      output + letterbox preprocess + NMS in Dart, unit-test decode/NMS with a
-      small fixture. iOS: ultralytics_yolo pose backend (code-only, verify on
-      Mac). Wire InferenceBackend → TrackBuilder.
-- [ ] Pipeline + UI (Task #7): isolate for analysis (web: compute() works),
-      rep table + fl_chart velocity plot with shaded phases, error states
-      (no barbell / zero reps / unreadable video), widget + integration tests.
+- [x] Inference layer COMPLETE (Task #6): analyze clean, 106/106 tests pass,
+      `flutter build web -t lib/dev/compile_check.dart` compiles the JS-interop
+      backend under dart2js.
+      - lib/inference/yolo_decoder.dart — pure Dart pre/post-processing,
+        replicating ultralytics: letterbox (114-gray, centered,
+        `round(pad-0.1)`), bilinear resize → (1,3,640,640) RGB 0..1 NCHW;
+        decode (1,56,8400) planar output; greedy NMS; scale_boxes back to
+        source pixels with clipping. Defaults conf 0.25 / IoU 0.7 = ultralytics
+        predict defaults (verified in ultralytics_yolo 0.6.9 source too).
+        Unit-tested (test/inference/yolo_decoder_test.dart).
+      - lib/inference/web_onnx_backend.dart — onnxruntime-web 1.27.0 via
+        dart:js_interop. Runtime vendored in web/vendor/ (ort.wasm.min.js +
+        ort-wasm-simd-threaded.{wasm,mjs}), loaded by a script tag in
+        web/index.html; `ort.env.wasm.wasmPaths = 'vendor/'`. Session from
+        rootBundle model bytes; input/output names read from the session.
+      - lib/inference/ios_yolo_backend.dart — ultralytics_yolo 0.6.9
+        (`YOLO(modelPath: 'yolov8s-pose', task: pose)`); plugin's predict()
+        takes ENCODED bytes, so frames are PNG-encoded via dart:ui
+        (ImageDescriptor.raw → toByteData(png)). Results parsed via
+        YOLOResult.fromMap (pixel-space keypoints + per-kp confidences).
+        **Needs Mac verification + yolov8s-pose.mlpackage in ios/Runner.**
+      - lib/inference/backend_factory.dart — conditional-import factory
+        (stub / web / iOS), same pattern as the input layer.
+      - lib/dev/compile_check.dart — web compile-check entrypoint that makes
+        picker → frame source → backend reachable for dart2js.
+- [ ] Pipeline + UI (Task #7) ← **NEXT**: isolate for analysis (web: compute()
+      works), rep table + fl_chart velocity plot with shaded phases, error
+      states (no barbell / zero reps / unreadable video), loading progress,
+      widget + integration tests (fixture-backed inference).
 
 ## Proposed module layout (pending user confirmation)
 

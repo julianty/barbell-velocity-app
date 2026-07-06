@@ -37,6 +37,7 @@ dependencies:
   file_picker: 11.0.2
   fl_chart: ^1.1.1
   web: 1.1.1
+  ultralytics_yolo: 0.6.9
   # NOTE (see PROGRESS.md): ultralytics_yolo (iOS inference) and an ONNX
   # runtime package (web inference) are added in the inference-layer task so
   # the web build stays verifiable until those code paths exist.

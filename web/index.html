@@ -31,6 +31,11 @@
 
   <title>barbell_velocity_app</title>
   <link rel="manifest" href="manifest.json">
+
+  <!-- onnxruntime-web 1.27.0 (vendored, see web/vendor/): exposes the global
+       `ort` used by lib/inference/web_onnx_backend.dart. The wasm binary is
+       loaded from web/vendor/ via ort.env.wasm.wasmPaths. -->
+  <script src="vendor/ort.wasm.min.js"></script>
 </head>
 <body>
   <!--
