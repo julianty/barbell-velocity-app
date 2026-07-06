@@ -128,6 +128,29 @@ Reference repo: `C:\Users\alexa\repos\barbell-speed-estimator` (Python env: `bb-
         * A bar held perfectly still at nonzero y yields ONE ~0-displacement
           "rep": Savitzky-Golay float noise + the reference's max-displacement
           fallback. Faithful to the reference; zero-reps tests use exactly 0.
+- [x] **Web E2E verified in real Chrome (2026-07-06)**: served build/web,
+      injected a 12 s 720p deadlift clip (from the reference repo's
+      "Deadlift-Front Right View (2).MOV", 60 fps source), watched the full
+      pick → extract → infer → results flow. Result: 1 rep detected over the
+      actual pull (start 7.75 s, 1.65 s, avg 60 / peak 145 px/s, ROM 99 px),
+      chart + shaded phase + tooltip + table all render. Two real bugs found
+      and fixed:
+      1. `ort.env.wasm.wasmPaths = 'vendor/'` fails — ort loads the .mjs via
+         dynamic import() and a bare relative specifier is invalid. Now uses
+         `Uri.base.resolve('vendor/')` (absolute URL).
+      2. No backpressure in WebFrameSource.frames(): video played realtime
+         while wasm inference blocked the main thread → ~1 sampled frame/s,
+         garbage velocities. Now controller.onPause/onResume pause/resume the
+         video (Dart `await for` pauses the subscription while the body
+         awaits), so every presented frame is captured at inference pace.
+      Environment findings (not bugs): Chrome never loads video metadata in a
+      hidden/minimized tab → analysis hangs at "Analyzing…" until the tab is
+      visible (rVFC also needs a visible tab) — consider a UI hint or
+      WebCodecs later. rVFC skips frames on 60 fps sources under load
+      (sampled ~20 fps here) — harmless because estimateFps measures the real
+      inter-sample dt, so velocities stay correct. Wasm inference ≈ 0.5 s/frame
+      (single-thread SIMD; threaded needs COOP/COEP headers) → ~3 min for a
+      12 s clip. Future perf: ort.env.wasm.proxy, WebCodecs, or WebGPU EP.
 - **MAC TODO (user):** export CoreML model (commands above), drag
   yolov8s-pose.mlpackage into ios/Runner in Xcode, build & verify:
   FrameExtractor.swift, ios_yolo_backend.dart parsing, ANE usage.

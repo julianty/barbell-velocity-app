@@ -48,7 +48,9 @@ class WebOnnxBackend implements InferenceBackend {
 
   @override
   Future<void> load() async {
-    _ortWasmPaths = 'vendor/'.toJS;
+    // Must be an absolute URL: ort resolves the .mjs via dynamic import(),
+    // and a bare 'vendor/...' specifier is not a valid module URL.
+    _ortWasmPaths = Uri.base.resolve('vendor/').toString().toJS;
     final model = await rootBundle.load(modelAsset);
     final bytes = model.buffer.asUint8List(
         model.offsetInBytes, model.lengthInBytes);

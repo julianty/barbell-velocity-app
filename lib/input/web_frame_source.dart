@@ -151,10 +151,11 @@ class WebFrameSource implements FrameSource {
           }
         }).toJS);
 
-    controller.onListen = () {
-      video.currentTime = 0;
-      video.requestVideoFrameCallback(onFrame);
+    void play() {
       video.play().toDart.catchError((Object e) {
+        // pause() racing a pending play() aborts it; that's expected under
+        // the per-frame backpressure below.
+        if (e.toString().contains('AbortError')) return null;
         if (!done) {
           done = true;
           controller.addError(e);
@@ -162,6 +163,22 @@ class WebFrameSource implements FrameSource {
         }
         return null;
       });
+    }
+
+    controller.onListen = () {
+      video.currentTime = 0;
+      video.requestVideoFrameCallback(onFrame);
+      play();
+    };
+    // Backpressure: a slow consumer (`await for` with per-frame inference)
+    // pauses the subscription; pause the video too, or it keeps playing in
+    // real time while the main thread is busy and most frames are dropped
+    // (observed: ~1 sampled frame per second of video with wasm inference).
+    controller.onPause = () {
+      if (!done) video.pause();
+    };
+    controller.onResume = () {
+      if (!done) play();
     };
     controller.onCancel = () {
       done = true;
