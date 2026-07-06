@@ -131,18 +131,22 @@ class _ResultsViewState extends State<ResultsView> {
                 const SizedBox(height: 16),
                 ValueListenableBuilder<double>(
                   valueListenable: _cursorTime,
-                  builder: (context, t, _) => Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      PositionChart(
-                          analysis: analysis,
-                          cursorTime: preview.isEmpty ? null : t),
-                      const SizedBox(height: 20),
-                      VelocityChart(
-                          analysis: analysis,
-                          cursorTime: preview.isEmpty ? null : t),
-                    ],
-                  ),
+                  builder: (context, t, _) {
+                    // Playback time -> chart x through the real frame
+                    // timestamps: web frame sampling is uneven, so index/fps
+                    // (chart x) drifts from wall-clock time.
+                    final chartT = preview.isEmpty
+                        ? null
+                        : widget.output.chartTimeForPlaybackTime(t);
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        PositionChart(analysis: analysis, cursorTime: chartT),
+                        const SizedBox(height: 20),
+                        VelocityChart(analysis: analysis, cursorTime: chartT),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),

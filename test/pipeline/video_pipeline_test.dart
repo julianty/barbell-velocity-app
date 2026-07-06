@@ -169,6 +169,37 @@ void main() {
     );
   });
 
+  test('chartTimeForPlaybackTime maps through uneven frame timestamps',
+      () async {
+    final positions =
+        List<double?>.generate(40, (i) => 100.0 * (1 - (i - 20).abs() / 20));
+    final source = FakeFrameSource(frameCount: 40, fps: 20);
+    final output = await _pipeline(source, FakeInferenceBackend(positions))
+        .run(_video);
+
+    // Uniform fake timestamps: mapping is identity onto index/fps grid.
+    expect(output.frameTimestampsS.length, 40);
+    expect(output.chartTimeForPlaybackTime(0), 0);
+    expect(output.chartTimeForPlaybackTime(1.0),
+        closeTo(20 / output.analysis.fps, 1e-9));
+    // Before the first frame and beyond the last clamp to the ends.
+    expect(output.chartTimeForPlaybackTime(-1), 0);
+    expect(output.chartTimeForPlaybackTime(999),
+        closeTo(39 / output.analysis.fps, 1e-9));
+
+    // Uneven timestamps (as rVFC produces): playback time must resolve to
+    // the sampled-frame index, not to t itself.
+    final uneven = PipelineOutput(
+      info: output.info,
+      track: output.track,
+      analysis: output.analysis,
+      frameTimestampsS: [0.0, 0.1, 0.4, 0.8], // wildly uneven sampling
+    );
+    // t=0.5 falls after sample 2 (ts 0.4) -> chart x = 2 / fps.
+    expect(uneven.chartTimeForPlaybackTime(0.5),
+        closeTo(2 / output.analysis.fps, 1e-9));
+  });
+
   test('still lift video yields output with zero reps (not an error)',
       () async {
     // Flat zero: a nonzero constant leaves Savitzky-Golay rounding noise and

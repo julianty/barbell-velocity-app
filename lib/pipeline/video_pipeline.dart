@@ -55,12 +55,37 @@ class PipelineOutput {
   /// Downscaled ~10 fps frames for the results-screen lift player.
   final List<PreviewFrame> preview;
 
+  /// True presentation timestamp of each sampled frame, indexed like the
+  /// track / analysis arrays. On web, frame sampling is NOT uniform (rVFC
+  /// skips a varying number of source frames under load), so mapping
+  /// between playback time and chart x (frame index / fps) must go through
+  /// this list — see [chartTimeForPlaybackTime].
+  final List<double> frameTimestampsS;
+
   const PipelineOutput({
     required this.info,
     required this.track,
     required this.analysis,
     this.preview = const [],
+    this.frameTimestampsS = const [],
   });
+
+  /// Chart x-coordinate (seconds, = frame index / fps as the charts plot it)
+  /// for a real playback time [t]: the last sampled frame at or before [t].
+  double chartTimeForPlaybackTime(double t) {
+    final ts = frameTimestampsS;
+    if (ts.isEmpty) return t;
+    var lo = 0, hi = ts.length - 1;
+    while (lo < hi) {
+      final mid = (lo + hi + 1) ~/ 2;
+      if (ts[mid] <= t) {
+        lo = mid;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    return lo / analysis.fps;
+  }
 }
 
 AnalysisResult _analyzeEntry((BarbellTrack, AnalysisConfig) args) =>
@@ -152,6 +177,7 @@ class VideoPipeline {
         track: track,
         analysis: analysis,
         preview: previewCollector.frames,
+        frameTimestampsS: timestamps,
       );
     } finally {
       await source.dispose();
