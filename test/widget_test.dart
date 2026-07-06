@@ -125,6 +125,7 @@ void main() {
     expect(find.textContaining('Analyzing lift.mp4'), findsOneWidget);
 
     await pumpUntilFound(tester, find.textContaining('2 reps'));
+    expect(find.byType(PositionChart), findsOneWidget);
     expect(find.byType(VelocityChart), findsOneWidget);
     expect(find.byType(DataTable), findsOneWidget);
     expect(find.text('Avg (px/s)'), findsOneWidget);

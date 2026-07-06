@@ -1,5 +1,9 @@
-/// Results screen body: summary line, velocity chart with shaded concentric
-/// phases, and the per-rep metrics table. Handles the zero-reps case.
+/// Results screen body, mirroring the reference pelt_concentric.png layout:
+/// summary line, vertical-position chart, vertical-velocity chart (both with
+/// shaded concentric phases), and the per-rep metrics table. Content is
+/// width-constrained so it sits comfortably in a desktop browser window.
+/// The charts are shown even when no rep qualified — like the reference
+/// plots, they're the main debugging aid for such videos.
 library;
 
 import 'package:flutter/material.dart';
@@ -18,73 +22,73 @@ class ResultsView extends StatelessWidget {
     final analysis = output.analysis;
     final theme = Theme.of(context);
     final viz = VizPalette.of(context);
-
-    if (!analysis.hasReps) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.search_off, size: 48),
-              const SizedBox(height: 12),
-              Text('No reps detected', style: theme.textTheme.titleMedium),
-              const SizedBox(height: 8),
-              Text(
-                'The bar was tracked, but no concentric phase qualified as a '
-                'rep. Try a video where the full lift is visible.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium,
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     final reps = analysis.reps;
-    final bestAvg =
-        reps.map((r) => r.avgVelPxS).reduce((a, b) => a > b ? a : b);
 
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Text(
-          '${reps.length} rep${reps.length == 1 ? '' : 's'} · '
-          'best avg ${bestAvg.toStringAsFixed(0)} px/s · '
-          '${analysis.fps.toStringAsFixed(1)} fps',
-          style: theme.textTheme.titleMedium,
-        ),
-        const SizedBox(height: 16),
-        Text('Bar velocity — shaded ranges are concentric phases',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: viz.textSecondary)),
-        const SizedBox(height: 8),
-        VelocityChart(analysis: analysis),
-        const SizedBox(height: 24),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            columns: const [
-              DataColumn(label: Text('Rep')),
-              DataColumn(label: Text('Start (s)'), numeric: true),
-              DataColumn(label: Text('Duration (s)'), numeric: true),
-              DataColumn(label: Text('Avg (px/s)'), numeric: true),
-              DataColumn(label: Text('Peak (px/s)'), numeric: true),
-              DataColumn(label: Text('ROM (px)'), numeric: true),
-            ],
-            rows: [
-              for (final rep in reps)
-                DataRow(cells: [
-                  DataCell(Text('${rep.repIndex + 1}')),
-                  DataCell(
-                      Text((rep.startFrame / analysis.fps).toStringAsFixed(2))),
-                  DataCell(Text(rep.durationS.toStringAsFixed(2))),
-                  DataCell(Text(rep.avgVelPxS.toStringAsFixed(0))),
-                  DataCell(Text(rep.maxVelPxS.toStringAsFixed(0))),
-                  DataCell(Text(rep.displacementPx.toStringAsFixed(0))),
-                ]),
-            ],
+        Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1000),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (analysis.hasReps)
+                  Text(
+                    '${reps.length} rep${reps.length == 1 ? '' : 's'} · '
+                    'best avg ${reps.map((r) => r.avgVelPxS).reduce((a, b) => a > b ? a : b).toStringAsFixed(0)} px/s · '
+                    '${analysis.fps.toStringAsFixed(1)} fps',
+                    style: theme.textTheme.titleMedium,
+                  )
+                else ...[
+                  Text('No reps detected', style: theme.textTheme.titleMedium),
+                  const SizedBox(height: 4),
+                  Text(
+                    'The bar was tracked (charts below), but no concentric '
+                    'phase qualified as a rep.',
+                    style: theme.textTheme.bodyMedium
+                        ?.copyWith(color: viz.textSecondary),
+                  ),
+                ],
+                const SizedBox(height: 4),
+                Text('Shaded ranges are detected concentric phases',
+                    style: theme.textTheme.bodySmall
+                        ?.copyWith(color: viz.textSecondary)),
+                const SizedBox(height: 16),
+                PositionChart(analysis: analysis),
+                const SizedBox(height: 20),
+                VelocityChart(analysis: analysis),
+                if (analysis.hasReps) ...[
+                  const SizedBox(height: 20),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      columns: const [
+                        DataColumn(label: Text('Rep')),
+                        DataColumn(label: Text('Start (s)'), numeric: true),
+                        DataColumn(label: Text('Duration (s)'), numeric: true),
+                        DataColumn(label: Text('Avg (px/s)'), numeric: true),
+                        DataColumn(label: Text('Peak (px/s)'), numeric: true),
+                        DataColumn(label: Text('ROM (px)'), numeric: true),
+                      ],
+                      rows: [
+                        for (final rep in reps)
+                          DataRow(cells: [
+                            DataCell(Text('${rep.repIndex + 1}')),
+                            DataCell(Text((rep.startFrame / analysis.fps)
+                                .toStringAsFixed(2))),
+                            DataCell(Text(rep.durationS.toStringAsFixed(2))),
+                            DataCell(Text(rep.avgVelPxS.toStringAsFixed(0))),
+                            DataCell(Text(rep.maxVelPxS.toStringAsFixed(0))),
+                            DataCell(
+                                Text(rep.displacementPx.toStringAsFixed(0))),
+                          ]),
+                      ],
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
         ),
       ],
