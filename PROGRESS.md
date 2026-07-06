@@ -102,10 +102,35 @@ Reference repo: `C:\Users\alexa\repos\barbell-speed-estimator` (Python env: `bb-
         (stub / web / iOS), same pattern as the input layer.
       - lib/dev/compile_check.dart — web compile-check entrypoint that makes
         picker → frame source → backend reachable for dart2js.
-- [ ] Pipeline + UI (Task #7) ← **NEXT**: isolate for analysis (web: compute()
-      works), rep table + fl_chart velocity plot with shaded phases, error
-      states (no barbell / zero reps / unreadable video), loading progress,
-      widget + integration tests (fixture-backed inference).
+- [x] Pipeline + UI COMPLETE (Task #7): analyze clean, web build clean,
+      116/116 tests pass. **All handoff tasks are now code-complete on
+      Windows; remaining work is Mac-only verification (below).**
+      - lib/pipeline/video_pipeline.dart — pick → frames → infer → TrackBuilder
+        → analyzeTrack via compute() (`useIsolate: false` for widget tests:
+        real isolates never resolve in the fake-async zone). Typed errors:
+        UnreadableVideoException (open/decode/fps failures),
+        NoBarbellException (no person in any frame). Web NaN fps recovered
+        via estimateFps; progress = timestamp/duration fraction.
+      - lib/ui/ — home_screen.dart (idle → processing w/ progress → results /
+        error, sealed state), results_view.dart (summary + rep DataTable +
+        zero-reps empty state), velocity_chart.dart (fl_chart line of smooth
+        velocity vs seconds, concentric phases shaded via
+        VerticalRangeAnnotation, touch tooltip), viz_palette.dart (validated
+        reference dataviz palette, light+dark).
+      - main.dart replaced (BarbellVelocityApp, light+dark themes).
+      - Tests: test/pipeline/video_pipeline_test.dart (fixture-backed
+        end-to-end: fake backend traces a golden fixture's positions → reps
+        match the Python reference; NaN-fps recovery; progress; all error
+        paths) + test/widget_test.dart (state machine + results UI).
+      - Test gotchas discovered (keep in mind):
+        * pumpAndSettle stalls when the next event is a pending *timer* (not
+          a scheduled frame) — use the pumpUntilFound helper in widget_test.
+        * A bar held perfectly still at nonzero y yields ONE ~0-displacement
+          "rep": Savitzky-Golay float noise + the reference's max-displacement
+          fallback. Faithful to the reference; zero-reps tests use exactly 0.
+- **MAC TODO (user):** export CoreML model (commands above), drag
+  yolov8s-pose.mlpackage into ios/Runner in Xcode, build & verify:
+  FrameExtractor.swift, ios_yolo_backend.dart parsing, ANE usage.
 
 ## Proposed module layout (pending user confirmation)
 
