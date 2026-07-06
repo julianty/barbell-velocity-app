@@ -14,6 +14,7 @@ import '../inference/track_builder.dart';
 import '../input/frame_source.dart';
 import '../input/frame_source_factory.dart';
 import '../input/video_picker.dart';
+import 'preview.dart';
 
 /// The video could not be opened or produced no usable frames.
 class UnreadableVideoException implements Exception {
@@ -51,10 +52,14 @@ class PipelineOutput {
   final BarbellTrack track;
   final AnalysisResult analysis;
 
+  /// Downscaled ~10 fps frames for the results-screen lift player.
+  final List<PreviewFrame> preview;
+
   const PipelineOutput({
     required this.info,
     required this.track,
     required this.analysis,
+    this.preview = const [],
   });
 }
 
@@ -94,12 +99,14 @@ class VideoPipeline {
       await backend.load();
 
       final builder = TrackBuilder();
+      final previewCollector = PreviewCollector();
       final timestamps = <double>[];
       var withDetection = 0;
       try {
         await for (final frame in source.frames()) {
           final detections = await backend.infer(frame);
           builder.add('frame_${frame.index}', detections);
+          previewCollector.add(frame);
           timestamps.add(frame.timestampS);
           if (detections.isNotEmpty) withDetection++;
           onProgress?.call(PipelineProgress(
@@ -140,7 +147,12 @@ class VideoPipeline {
       final analysis = useIsolate
           ? await compute(_analyzeEntry, (track, config))
           : analyzeTrack(track, config: config);
-      return PipelineOutput(info: info, track: track, analysis: analysis);
+      return PipelineOutput(
+        info: info,
+        track: track,
+        analysis: analysis,
+        preview: previewCollector.frames,
+      );
     } finally {
       await source.dispose();
       await backend.dispose();

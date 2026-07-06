@@ -13,6 +13,7 @@ import 'package:barbell_velocity_app/input/frame_source.dart';
 import 'package:barbell_velocity_app/input/video_picker.dart';
 import 'package:barbell_velocity_app/pipeline/video_pipeline.dart';
 import 'package:barbell_velocity_app/ui/home_screen.dart';
+import 'package:barbell_velocity_app/ui/lift_player.dart';
 import 'package:barbell_velocity_app/ui/velocity_chart.dart';
 
 class _FakeSource implements FrameSource {
@@ -127,8 +128,12 @@ void main() {
     await pumpUntilFound(tester, find.textContaining('2 reps'));
     expect(find.byType(PositionChart), findsOneWidget);
     expect(find.byType(VelocityChart), findsOneWidget);
+    expect(find.byType(LiftPlayer), findsOneWidget);
     expect(find.byType(DataTable), findsOneWidget);
     expect(find.text('Avg (px/s)'), findsOneWidget);
+
+    // Unmount to cancel the player's playback timer before the test ends.
+    await tester.pumpWidget(const SizedBox());
   });
 
   testWidgets('no lifter detected shows the error state', (tester) async {
@@ -153,5 +158,9 @@ void main() {
 
     await tester.tap(find.text('Pick a video'));
     await pumpUntilFound(tester, find.text('No reps detected'));
+    // Charts and player still shown for debugging; unmount to cancel the
+    // player's playback timer before the test ends.
+    expect(find.byType(PositionChart), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
   });
 }

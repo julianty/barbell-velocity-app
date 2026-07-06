@@ -14,7 +14,10 @@ import 'viz_palette.dart';
 class PositionChart extends StatelessWidget {
   final AnalysisResult analysis;
 
-  const PositionChart({super.key, required this.analysis});
+  /// Playback time of the lift player; draws a sweeping cursor line.
+  final double? cursorTime;
+
+  const PositionChart({super.key, required this.analysis, this.cursorTime});
 
   @override
   Widget build(BuildContext context) {
@@ -24,6 +27,7 @@ class PositionChart extends StatelessWidget {
       unit: 'px',
       fps: analysis.fps,
       phases: analysis.phases,
+      cursorTime: cursorTime,
       series: [
         _Series('Raw', analysis.rawPositions, viz.muted, 1),
         _Series('SG-smoothed', analysis.smoothPositions, viz.series1, 2),
@@ -35,7 +39,10 @@ class PositionChart extends StatelessWidget {
 class VelocityChart extends StatelessWidget {
   final AnalysisResult analysis;
 
-  const VelocityChart({super.key, required this.analysis});
+  /// Playback time of the lift player; draws a sweeping cursor line.
+  final double? cursorTime;
+
+  const VelocityChart({super.key, required this.analysis, this.cursorTime});
 
   @override
   Widget build(BuildContext context) {
@@ -45,6 +52,7 @@ class VelocityChart extends StatelessWidget {
       unit: 'px/s',
       fps: analysis.fps,
       phases: analysis.phases,
+      cursorTime: cursorTime,
       series: [
         _Series('Raw', analysis.rawVelocity, viz.muted, 1),
         _Series('SG-smoothed', analysis.smoothVelocity, viz.series1, 2),
@@ -67,6 +75,7 @@ class _SignalChart extends StatelessWidget {
   final String unit;
   final double fps;
   final List<Phase> phases;
+  final double? cursorTime;
 
   /// Painted in order; put the primary (smoothed) series last so it draws
   /// on top of the raw signal.
@@ -80,6 +89,7 @@ class _SignalChart extends StatelessWidget {
     required this.fps,
     required this.phases,
     required this.series,
+    this.cursorTime,
   });
 
   @override
@@ -106,6 +116,15 @@ class _SignalChart extends StatelessWidget {
       }
     }
     if (bars.isEmpty) return const SizedBox.shrink();
+
+    // Only draw the cursor inside the plotted x-range (fl_chart asserts on
+    // out-of-range extra lines).
+    final maxX = bars
+        .map((b) => b.spots.last.x)
+        .reduce((a, b) => a > b ? a : b);
+    final cursor = cursorTime;
+    final cursorX =
+        cursor != null && cursor >= 0 && cursor <= maxX ? cursor : null;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -139,6 +158,16 @@ class _SignalChart extends StatelessWidget {
               padding: const EdgeInsets.fromLTRB(8, 16, 16, 8),
               child: LineChart(
                 LineChartData(
+                  extraLinesData: ExtraLinesData(
+                    verticalLines: [
+                      if (cursorX != null)
+                        VerticalLine(
+                          x: cursorX,
+                          color: viz.textSecondary,
+                          strokeWidth: 1,
+                        ),
+                    ],
+                  ),
                   rangeAnnotations: RangeAnnotations(
                     verticalRangeAnnotations: [
                       for (final (start, end) in phases)
