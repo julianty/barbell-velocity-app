@@ -1,5 +1,5 @@
 /// iOS InferenceBackend: the `ultralytics_yolo` plugin running the CoreML
-/// pose model (yolov8s-pose.mlpackage, exported on a Mac — see PROGRESS.md)
+/// pose model (yolo26s-pose.mlpackage, exported on a Mac — see PROGRESS.md)
 /// on the Neural Engine. The plugin's single-image API takes *encoded* image
 /// bytes, so each raw RGBA frame is PNG-encoded via dart:ui (Skia, native)
 /// before prediction. Keypoints come back in source-image pixel space as
@@ -22,8 +22,8 @@ InferenceBackend createInferenceBackendImpl() => IosYoloBackend();
 
 class IosYoloBackend implements InferenceBackend {
   /// Model name resolved by the plugin from the app bundle
-  /// (yolov8s-pose.mlpackage dragged into ios/Runner in Xcode).
-  static const modelName = 'yolov8s-pose';
+  /// (yolo26s-pose.mlpackage dragged into ios/Runner in Xcode).
+  static const modelName = 'yolo26s-pose';
 
   uy.YOLO? _yolo;
 

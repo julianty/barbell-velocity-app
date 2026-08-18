@@ -17,7 +17,15 @@ class PositionChart extends StatelessWidget {
   /// Playback time of the lift player; draws a sweeping cursor line.
   final double? cursorTime;
 
-  const PositionChart({super.key, required this.analysis, this.cursorTime});
+  /// Plot area height; callers should size this from the viewport (see
+  /// results_view.dart) rather than relying on the built-in default.
+  final double height;
+
+  const PositionChart(
+      {super.key,
+      required this.analysis,
+      this.cursorTime,
+      this.height = _SignalChart.defaultHeight});
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +36,7 @@ class PositionChart extends StatelessWidget {
       fps: analysis.fps,
       phases: analysis.phases,
       cursorTime: cursorTime,
+      height: height,
       series: [
         _Series('Raw', analysis.rawPositions, viz.muted, 1),
         _Series('SG-smoothed', analysis.smoothPositions, viz.series1, 2),
@@ -42,7 +51,15 @@ class VelocityChart extends StatelessWidget {
   /// Playback time of the lift player; draws a sweeping cursor line.
   final double? cursorTime;
 
-  const VelocityChart({super.key, required this.analysis, this.cursorTime});
+  /// Plot area height; callers should size this from the viewport (see
+  /// results_view.dart) rather than relying on the built-in default.
+  final double height;
+
+  const VelocityChart(
+      {super.key,
+      required this.analysis,
+      this.cursorTime,
+      this.height = _SignalChart.defaultHeight});
 
   @override
   Widget build(BuildContext context) {
@@ -53,6 +70,7 @@ class VelocityChart extends StatelessWidget {
       fps: analysis.fps,
       phases: analysis.phases,
       cursorTime: cursorTime,
+      height: height,
       series: [
         _Series('Raw', analysis.rawVelocity, viz.muted, 1),
         _Series('SG-smoothed', analysis.smoothVelocity, viz.series1, 2),
@@ -80,8 +98,9 @@ class _SignalChart extends StatelessWidget {
   /// Painted in order; put the primary (smoothed) series last so it draws
   /// on top of the raw signal.
   final List<_Series> series;
+  final double height;
 
-  static const double _height = 280;
+  static const double defaultHeight = 280;
 
   const _SignalChart({
     required this.title,
@@ -90,6 +109,7 @@ class _SignalChart extends StatelessWidget {
     required this.phases,
     required this.series,
     this.cursorTime,
+    this.height = defaultHeight,
   });
 
   @override
@@ -148,7 +168,7 @@ class _SignalChart extends StatelessWidget {
         ),
         const SizedBox(height: 8),
         SizedBox(
-          height: _height,
+          height: height,
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: viz.surface,

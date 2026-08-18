@@ -78,74 +78,92 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
         ],
       ),
-      body: switch (_state) {
-        _Idle() => Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text('Analyze a lift video',
-                    style: theme.textTheme.headlineSmall),
-                const SizedBox(height: 8),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 32),
-                  child: Text(
-                    'Pick a video of a barbell lift. Pose detection tracks '
-                    'the bar via the lifter\'s wrists and reports per-rep '
-                    'velocity.',
-                    textAlign: TextAlign.center,
+      body: SafeArea(
+        child: switch (_state) {
+          _Idle() => Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text('Analyze a lift video',
+                              style: theme.textTheme.headlineSmall),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Pick a video of a barbell lift. Pose detection '
+                            'tracks the bar via the lifter\'s wrists and '
+                            'reports per-rep velocity.',
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 24),
-                FilledButton.icon(
-                  onPressed: _pickAndRun,
-                  icon: const Icon(Icons.video_file),
-                  label: const Text('Pick a video'),
-                ),
-              ],
-            ),
-          ),
-        _Processing(:final videoName, :final progress) => Center(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                SizedBox(
-                  width: 240,
-                  child: LinearProgressIndicator(value: progress?.fraction),
-                ),
-                const SizedBox(height: 16),
-                Text('Analyzing $videoName…',
-                    style: theme.textTheme.titleMedium),
-                if (progress != null) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    '${progress.framesProcessed} frames · '
-                    '${progress.framesWithDetection} with a lifter',
-                    style: theme.textTheme.bodySmall,
+                  FilledButton.icon(
+                    style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52)),
+                    onPressed: _pickAndRun,
+                    icon: const Icon(Icons.video_file),
+                    label: const Text('Pick a video'),
                   ),
                 ],
-              ],
+              ),
             ),
-          ),
-        _Failed(:final message) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
+          _Processing(:final videoName, :final progress) => Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.error_outline, size: 48),
-                  const SizedBox(height: 12),
-                  Text(message, textAlign: TextAlign.center),
+                  SizedBox(
+                    width: 240,
+                    child: LinearProgressIndicator(value: progress?.fraction),
+                  ),
                   const SizedBox(height: 16),
+                  Text('Analyzing $videoName…',
+                      style: theme.textTheme.titleMedium),
+                  if (progress != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      '${progress.framesProcessed} frames · '
+                      '${progress.framesWithDetection} with a lifter',
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          _Failed(:final message) => Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.error_outline, size: 48),
+                          const SizedBox(height: 12),
+                          Text(message, textAlign: TextAlign.center),
+                        ],
+                      ),
+                    ),
+                  ),
                   FilledButton(
+                    style: FilledButton.styleFrom(
+                        minimumSize: const Size.fromHeight(52)),
                     onPressed: _pickAndRun,
                     child: const Text('Try another video'),
                   ),
                 ],
               ),
             ),
-          ),
-        _Done(:final output) => ResultsView(output: output),
-      },
+          _Done(:final output) => ResultsView(output: output),
+        },
+      ),
     );
   }
 }

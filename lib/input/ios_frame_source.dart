@@ -5,6 +5,9 @@
 /// NOTE: written on Windows; must be verified on a Mac (see PROGRESS.md).
 library;
 
+import 'dart:async';
+import 'dart:collection';
+
 import 'package:flutter/services.dart';
 
 import 'frame_source.dart';
@@ -41,19 +44,75 @@ class IosFrameSource implements FrameSource {
     );
   }
 
+  static VideoFrame _decode(Object? event) {
+    final m = (event! as Map).cast<String, dynamic>();
+    return VideoFrame(
+      index: (m['index'] as num).toInt(),
+      timestampS: (m['timestampS'] as num).toDouble(),
+      width: (m['width'] as num).toInt(),
+      height: (m['height'] as num).toInt(),
+      rgba: m['rgba'] as Uint8List,
+    );
+  }
+
+  /// Backpressure: the native reader decodes far faster than this pipeline
+  /// consumes (PNG encode + CoreML per frame). Pausing a subscription on the
+  /// EventChannel's *broadcast* stream does not stop the platform producer —
+  /// the engine just queues the undelivered messages, so a 1080p clip can
+  /// buffer gigabytes of RGBA and get the app killed for memory pressure.
+  ///
+  /// So the native side is credit-gated instead (see FrameExtractor.swift):
+  /// it only ever has a few unacknowledged frames outstanding, and this
+  /// single-subscription wrapper sends `ackFrame` as each frame is handed to
+  /// the consumer. When the consumer pauses (which `await for` does while it
+  /// awaits the loop body) acks stop, and the reader blocks in turn.
   @override
   Stream<VideoFrame> frames() {
-    return _events
-        .receiveBroadcastStream(<String, dynamic>{'path': path}).map((event) {
-      final m = (event as Map).cast<String, dynamic>();
-      return VideoFrame(
-        index: (m['index'] as num).toInt(),
-        timestampS: (m['timestampS'] as num).toDouble(),
-        width: (m['width'] as num).toInt(),
-        height: (m['height'] as num).toInt(),
-        rgba: m['rgba'] as Uint8List,
-      );
-    });
+    final controller = StreamController<VideoFrame>();
+    final pending = Queue<VideoFrame>();
+    StreamSubscription<dynamic>? sub;
+    var ended = false;
+
+    void pump() {
+      while (pending.isNotEmpty &&
+          !controller.isPaused &&
+          !controller.isClosed) {
+        controller.add(pending.removeFirst());
+        unawaited(
+          _method
+              .invokeMethod<void>('ackFrame')
+              // The reader may already be gone (cancel/end); acks are advisory.
+              .catchError((Object _) {}),
+        );
+      }
+      if (ended && pending.isEmpty && !controller.isClosed) {
+        controller.close();
+      }
+    }
+
+    controller.onListen = () {
+      sub = _events
+          .receiveBroadcastStream(<String, dynamic>{'path': path})
+          .listen(
+            (Object? event) {
+              pending.add(_decode(event));
+              pump();
+            },
+            onError: (Object e, StackTrace s) => controller.addError(e, s),
+            onDone: () {
+              ended = true;
+              pump();
+            },
+          );
+    };
+    controller.onResume = pump;
+    controller.onCancel = () async {
+      ended = true;
+      pending.clear();
+      await sub?.cancel();
+    };
+
+    return controller.stream;
   }
 
   @override

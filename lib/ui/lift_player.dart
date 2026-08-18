@@ -97,26 +97,40 @@ class _LiftPlayerState extends State<LiftPlayer> {
     if (index + 1 < widget.frames.length) _ensureDecoded(index + 1);
     final image = _images[index];
 
+    // Real aspect ratio of the preview frames: sized by AspectRatio rather
+    // than a fixed height, so portrait lift videos aren't letterboxed inside
+    // a landscape-shaped box.
+    final first = widget.frames.first;
+    final aspectRatio = (first.width > 0 && first.height > 0)
+        ? first.width / first.height
+        : 16 / 9;
+
+    // Cap the rendered height so a portrait (e.g. 9:16) video can't grow
+    // tall enough to push the play/scrub controls off-screen.
+    final maxPreviewHeight = MediaQuery.of(context).size.height * 0.45;
+
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Fixed-height letterbox: the frame is contained within whatever
-        // width the parent gives the player, so portrait videos don't shrink
-        // the controls row below it.
-        ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: SizedBox(
-            height: 280,
-            child: ColoredBox(
-              color: viz.surface,
-              child: image == null
-                  ? const Center(
-                      child: SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(strokeWidth: 2)))
-                  : RawImage(image: image, fit: BoxFit.contain),
+        Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxHeight: maxPreviewHeight),
+            child: AspectRatio(
+              aspectRatio: aspectRatio,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: ColoredBox(
+                  color: viz.surface,
+                  child: image == null
+                      ? const Center(
+                          child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(strokeWidth: 2)))
+                      : RawImage(image: image, fit: BoxFit.contain),
+                ),
+              ),
             ),
           ),
         ),

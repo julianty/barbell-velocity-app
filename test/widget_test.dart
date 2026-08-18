@@ -125,12 +125,14 @@ void main() {
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
     expect(find.textContaining('Analyzing lift.mp4'), findsOneWidget);
 
-    await pumpUntilFound(tester, find.textContaining('2 reps'));
+    await pumpUntilFound(tester, find.text('Best avg velocity'));
     expect(find.byType(PositionChart), findsOneWidget);
     expect(find.byType(VelocityChart), findsOneWidget);
     expect(find.byType(LiftPlayer), findsOneWidget);
-    expect(find.byType(DataTable), findsOneWidget);
-    expect(find.text('Avg (px/s)'), findsOneWidget);
+    // Rep results render as stacked cards (not a DataTable) with per-rep
+    // avg/peak velocity text.
+    expect(find.textContaining('px/s avg'), findsNWidgets(2));
+    expect(find.text('Reps'), findsOneWidget);
 
     // Unmount to cancel the player's playback timer before the test ends.
     await tester.pumpWidget(const SizedBox());
