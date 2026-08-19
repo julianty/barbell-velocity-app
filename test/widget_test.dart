@@ -138,6 +138,64 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
+  testWidgets(
+      'phone-width layout renders results without overflow',
+      (tester) async {
+    // All other results-view tests run at the default 800x600 test surface,
+    // which only exercises the wide (>=700pt) LayoutBuilder branch. Force a
+    // phone-width surface so the actual single-column phone layout the demo
+    // depends on gets checked too.
+    addTearDown(() {
+      tester.view.resetPhysicalSize();
+      tester.view.resetDevicePixelRatio();
+    });
+    tester.view.physicalSize = const Size(390, 844) * 3;
+    tester.view.devicePixelRatio = 3;
+
+    await tester.pumpWidget(MaterialApp(
+        home: HomeScreen(
+            picker: _picker, pipeline: _pipelineFor(twoRepPositions()))));
+
+    await tester.tap(find.text('Pick a video'));
+    await pumpUntilFound(tester, find.text('Best avg velocity'));
+
+    expect(tester.takeException(), isNull);
+    expect(find.byType(LiftPlayer), findsOneWidget);
+
+    // Phone layout stacks everything in a single ListView, so the rep cards
+    // and charts start off the (short) phone screen and only exist once the
+    // list is scrolled into view (unlike the wide branch, which lays
+    // everything out within its bounded desktop-sized column).
+    final scrollable = find.byType(Scrollable);
+    await tester.scrollUntilVisible(find.byType(PositionChart), 300,
+        scrollable: scrollable);
+    expect(find.byType(PositionChart), findsOneWidget);
+    expect(find.byType(VelocityChart), findsOneWidget);
+
+    await tester.scrollUntilVisible(find.text('Reps'), 300,
+        scrollable: scrollable);
+    expect(find.text('Reps'), findsOneWidget);
+    await tester.scrollUntilVisible(find.textContaining('px/s avg').first,
+        300,
+        scrollable: scrollable);
+    expect(find.textContaining('px/s avg'), findsNWidgets(2));
+
+    // Phone layout stacks everything in a single ListView; the wide branch's
+    // side-by-side video column (SizedBox(width: 360) around LiftPlayer)
+    // must not be present.
+    expect(
+      find.ancestor(
+        of: find.byType(LiftPlayer),
+        matching:
+            find.byWidgetPredicate((w) => w is SizedBox && w.width == 360),
+      ),
+      findsNothing,
+    );
+
+    // Unmount to cancel the player's playback timer before the test ends.
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('no lifter detected shows the error state', (tester) async {
     await tester.pumpWidget(MaterialApp(
         home: HomeScreen(
